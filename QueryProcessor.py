@@ -13,9 +13,12 @@ from tabulate import tabulate
 
 #Global Variables
 connection_params = {
-    'dbname': 'carmengvargas',
+    'dbname': 'postgres',
     'host': 'localhost',
-    'port': '5432'
+    'port': '5432',
+    'user': 'postgres',
+    'password': 'root'
+    
 }
 sales_table_schema = {
     "cust": ["char", 20],
@@ -29,7 +32,7 @@ sales_table_schema = {
 }
 sales_table_columns = ["cust", "prod", "day", "month", "year", "state", "quant", "date"]
 mf_struct_header = []
-mf_table = []
+mf_table = [] #Store the Output of the result
 
 # The set of below operations attempt to connect to Database and retrieve Sales Table
 try: 
@@ -56,18 +59,30 @@ finally:
 # ************************* Print Table Rows Test Function **************************
 def print_table_rows():
     """
-        This function prints out the rows of the Sales tables. This function is purely for testing purposes.
+    This function prints out the rows of the Sales tables. This function is purely for testing purposes.
     """
-
-    #Using Tabulate to output result table
+    # Using Tabulate to output result table
     print("\n\n******************** \n    MF Table \n********************")
+    
     data = []
+    
+    # Iterate through each row in mf_table
     for row in mf_table:
         new_row = []
-        for value in row.values():
-            new_row.append(value)
+        
+        # For each column in the header, get the corresponding value from the row
+        for header in mf_struct_header:
+            if header in row:
+                new_row.append(row[header])  # Append the value under the correct column
+            else:
+                new_row.append('NULL')  # If a column doesn't exist in the row, append an empty string
+        
         data.append(new_row)
+    
+    # Print the table using tabulate
     print(tabulate(data, headers=mf_struct_header, tablefmt="grid"))
+
+
 
 # ************************* Get MF Structure  **************************
 def get_mf_structure(phi):
@@ -163,8 +178,9 @@ def main():
     """
         Main function that runs all of the functions and loops to output the result of the submitted (input) query. 
     """
+# ************************* Main Function **************************
     query = {
-        "S": ["cust", "prod", "count_1_quant", "sum_2_quant", "max_3_quant"],
+        "S": ["cust", "prod", "sum_1_quant", "sum_2_quant", "max_3_quant", "sum_4_quant"],
         "n": 3,
         "V": {
             "col1": {"name": "cust", "type": "char", "size": 20},
@@ -173,52 +189,72 @@ def main():
         "F-VECT": [
             {"name": "sum_NY_quant", "group_var": "NY", "agg": "sum"},
             {"name": "sum_NJ_quant", "group_var": "NJ", "agg": "sum"},
-            {"name": "max_CT_quant", "group_var": "CT", "agg": "max"}
+            {"name": "max_CT_quant", "group_var": "CT", "agg": "max"},
+            {"name": "count_CT_quant", "group_var": "CT", "agg": "count"},
+            {"name": "min_NY_quant", "group_var": "NY", "agg": "min"},
+            {"name": "avg_NJ_quant", "group_var": "NJ", "agg": "avg"},
         ],
         "PRED-LIST": {
             "var1": {"name": "sum_NY_quant", "group_var": "NY", "attribute": "state", "value": "NY"},
             "var2": {"name": "sum_NJ_quant", "group_var": "NJ", "attribute": "state", "value": "NJ"},
-            "var3": {"name": "max_CT_quant", "group_var": "CT", "attribute": "state", "value":"CT"}
+            "var3": {"name": "max_CT_quant", "group_var": "CT", "attribute": "state", "value": "CT"},
+            "var4": {"name": "count_CT_quant", "group_var": "CT", "attribute": "state", "value": "CT"},
+            "var5": {"name": "min_NY_quant", "group_var": "NY", "attribute": "state", "value": "NY"},
+            "var6": {"name": "avg_NY_quant", "group_var": "NJ", "attribute": "state", "value": "NJ"}
         }
     }
+    
+    # Get MF structure and print
     get_mf_structure(query)
     
-    """
-        Table Scan 1: Populate the mf_table with distinct values of the grouping attributes
-    """
-    #Get index(ces) of grouping attributes
-    indeces = []
-    for column, obj in query["V"].items():
-        indeces.append(get_indeces(obj["name"]))
-    
-    #Look up grouping attributes in mf struct and/or add row
+    # Get indices of grouping attributes (cust, prod)
+    indeces = [get_indeces(obj["name"]) for column, obj in query["V"].items()]
+
+    # First Table Scan: Populate the mf_table with distinct values of grouping attributes
     for row in table_rows:
         match = lookup(row, indeces)
-        if(match[0] == -1):
+        if match[0] == -1:
             add_row(row, indeces)
 
-    """
-        Table Scan 2: Create a loop to go through each aggregate and populate the mf_table with the aggregate calculation. 
-        Loops:
-            "n" represents the number of aggregates in the query.
-            "row" represents the rows of the underlying table (Sales table)
-    """
-    for n in range(query["n"]):
-        # Obtain the aggregate from the F-VECT list
+    # Second Table Scan: Calculate aggregates (sum, max) based on state
+    for n in range(len(query["F-VECT"])):
         agg = query["F-VECT"][n]
+        agg_name = agg["name"]
+        group_var = agg["group_var"]
+        agg_type = agg["agg"]
+
+        predicate = query["PRED-LIST"][f"var{n + 1}"]
 
         # Loop through table rows
         for row in table_rows:
-            # First check if the row exists in the MF Table
             match = lookup(row, indeces)
-            if(match[0] > -1):
-                # If a match is found
+            if match[0] > -1:
                 pos = match[1]
-                print("function is pending...")
-    
-                
+                attr_index = get_indeces(predicate["attribute"])
 
-    
+                
+                if row[attr_index] == predicate["value"]:
+                    quant_index = get_indeces("quant")
+                    current_value = mf_table[pos].get(agg_name, None)
+                    if agg_type == "sum":
+                        mf_table[pos][agg_name] = current_value + row[quant_index] if current_value else row[quant_index]
+                    elif agg_type == "max":
+                        mf_table[pos][agg_name] = max(current_value, row[quant_index]) if current_value else row[quant_index]
+                    elif agg_type == "min":
+                        mf_table[pos][agg_name] = min(current_value, row[quant_index]) if current_value else row[quant_index]
+                    elif agg_type == "count":
+                        mf_table[pos][agg_name] = current_value + 1 if current_value else 1
+                    elif agg_type == "avg":
+                        sum_key = f"{agg_name}_sum"
+                        count_key = f"{agg_name}_count"
+                        mf_table[pos][sum_key] = mf_table[pos].get(sum_key, 0) + row[quant_index]
+                        mf_table[pos][count_key] = mf_table[pos].get(count_key, 0) + 1
+                        mf_table[pos][agg_name] = mf_table[pos][sum_key] / mf_table[pos][count_key]
+
+
+    # Print the final result (MF table)
+    print_table_rows()
+
 
 if __name__ == "__main__":
     main()
