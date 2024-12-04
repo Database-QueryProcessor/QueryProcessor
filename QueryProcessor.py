@@ -4,20 +4,17 @@
     Date: Fall Semester 2024
     Description:
         This program is a simple solution to ad-hoc OLAP complex queries using the newly introduced Phi operator. Instead of conducting multiple joins which leads to multiple scans of the underlying table, this programs aims to reduce the number of joins and number of scans by computing aggregates functions of subsets of the group by attributes using just a few table scans.
-
-
 """
 
 import psycopg2
 from tabulate import tabulate
+from queries import esqlQuery
 
 #Global Variables
 connection_params = {
-    'dbname': 'postgres',
+    'dbname': 'carmengvargas',
     'host': 'localhost',
-    'port': '5432',
-    'user': 'postgres',
-    'password': 'root'
+    'port': '5432'
     
 }
 sales_table_schema = {
@@ -44,8 +41,7 @@ except Exception as e:
 try:
     cursor = connection.cursor()
     # table rows
-    query = "select * from sales"
-    cursor.execute(query)
+    cursor.execute("select * from sales;")
     global table_rows
     table_rows = cursor.fetchall()
 
@@ -116,7 +112,7 @@ def get_mf_structure(phi):
 # ************************* Get Indeces of Grouping Attributes **************************
 def get_indeces(attribute):
     """
-        This function retrieves the group by attributes from the Sales table as indeces. Because the database returns the table rows as python lists with indexed values, this functiongets the index of the group-by attributes using the hard coded sales table headers list.
+        This function retrieves the group by attributes from the Sales table as indeces. Because the database returns the table rows as python lists with indexed values, this function gets the index of the group-by attributes using the hard coded sales table headers list.
         Parameters:
             group by attribute
         Output:
@@ -179,30 +175,7 @@ def main():
         Main function that runs all of the functions and loops to output the result of the submitted (input) query. 
     """
 # ************************* Main Function **************************
-    query = {
-        "S": ["cust", "prod", "sum_1_quant", "sum_2_quant", "max_3_quant", "sum_4_quant"],
-        "n": 3,
-        "V": {
-            "col1": {"name": "cust", "type": "char", "size": 20},
-            "col2": {"name": "prod", "type": "char", "size": 20}
-        },
-        "F-VECT": [
-            {"name": "sum_NY_quant", "group_var": "NY", "agg": "sum"},
-            {"name": "sum_NJ_quant", "group_var": "NJ", "agg": "sum"},
-            {"name": "max_CT_quant", "group_var": "CT", "agg": "max"},
-            {"name": "count_CT_quant", "group_var": "CT", "agg": "count"},
-            {"name": "min_NY_quant", "group_var": "NY", "agg": "min"},
-            {"name": "avg_NJ_quant", "group_var": "NJ", "agg": "avg"},
-        ],
-        "PRED-LIST": {
-            "var1": {"name": "sum_NY_quant", "group_var": "NY", "attribute": "state", "value": "NY"},
-            "var2": {"name": "sum_NJ_quant", "group_var": "NJ", "attribute": "state", "value": "NJ"},
-            "var3": {"name": "max_CT_quant", "group_var": "CT", "attribute": "state", "value": "CT"},
-            "var4": {"name": "count_CT_quant", "group_var": "CT", "attribute": "state", "value": "CT"},
-            "var5": {"name": "min_NY_quant", "group_var": "NY", "attribute": "state", "value": "NY"},
-            "var6": {"name": "avg_NY_quant", "group_var": "NJ", "attribute": "state", "value": "NJ"}
-        }
-    }
+    query = esqlQuery()
     
     # Get MF structure and print
     get_mf_structure(query)
