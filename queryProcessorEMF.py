@@ -189,17 +189,14 @@ def main():
         if match[0] == -1:
             add_row(row, indeces)
 
-    # Second Table Scan: Calculate aggregates
-    for n in range(len(query["F-VECT"])):
-        agg = query["F-VECT"][n]
-        agg_name = agg["name"]
-        group_var = agg["group_var"]
-        agg_type = agg["agg"]
+    # Second Table Scan: Calculate aggregates within one table scan
+    for row in table_rows:
+        for n in range(len(query["F-VECT"])):
+            agg = query["F-VECT"][n]
+            agg_name = agg["name"]
+            agg_type = agg["agg"]
 
-        predicate = query["PRED-LIST"][f"var{n + 1}"]
-
-        # Loop through table rows
-        for row in table_rows:
+            predicate = query["PRED-LIST"][f"var{n + 1}"]
             match = lookup(row, indeces)
             if match[0] > -1:
                 pos = match[1]

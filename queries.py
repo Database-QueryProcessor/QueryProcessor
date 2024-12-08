@@ -1,3 +1,11 @@
+"""
+Description:
+    The queries file is where the sql and esql queries are stored and fed into the program. 
+    Variables with sql_ prefix are the sql equivalent of the esql queries that we can test against our custom query processor
+    Variables with esql_ prefix are the esql queries we feed into our custom query processor.
+    Each variable can be returned in the respective function: sqlQuery or esqlQuery
+"""
+
 sql_a = """
     select cust, prod, sum(quant) as sum_NY_quant
     from sales 
@@ -26,10 +34,10 @@ sql_b = """
     from q0, sales
     where sales.quant = q0.max_q and q0.state = 'CT'
     )
-    select ny.customer, ny.product, nj.nj_max, ny.ny_max, ct.ct_max
+    select ny.cust, ny.prod, nj.nj_max, ny.ny_max, ct.ct_max
     from ny
-    join nj on ny.customer = nj.customer and ny.product = nj.product
-    join ct on ny.customer = ct.customer and ny.product = ct.product;
+    join nj on ny.cust = nj.cust and ny.prod = nj.prod
+    join ct on ny.cust = ct.cust and ny.prod = ct.prod;
 """
 
 esql_c = {
