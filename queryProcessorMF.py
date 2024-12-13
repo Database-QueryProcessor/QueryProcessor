@@ -174,13 +174,12 @@ def main():
     """
         Main function that runs all of the functions and loops to output the result of the submitted (input) query. 
     """
-# ************************* Main Function **************************
     query = esqlQuery()
     
     # Get MF structure and print
     get_mf_structure(query)
     
-    # Get indices of grouping attributes
+    # Get indices of grouping attributes (cust, prod)
     indeces = [get_indeces(obj["name"]) for column, obj in query["V"].items()]
 
     # First Table Scan: Populate the mf_table with distinct values of grouping attributes
