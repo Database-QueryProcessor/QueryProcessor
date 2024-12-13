@@ -168,19 +168,19 @@ sql_d = """
 with new_sales as
 (select prod, state, MAX(quant) as MAX_Q , AVG(quant) as AVG_Q, COUNT(quant) as COUNT_Q
 from sales
-     group by prod, state),
-     sales_data as
-     (select prod, MAX_Q as NY_MAX, AVG_Q as NY_AVG, COUNT_Q as NY_COUNT
-      from new_sales natural join sales s
-      where new_sales.state = 'NY' and (s.quant = new_sales.MAX_Q or s.quant = new_sales.AVG_Q)),
-      sales_data1 as
-      (select prod, MAX_Q as NJ_MAX, AVG_Q as NJ_AVG
-      from new_sales natural join sales s
-      where new_sales.state = 'NJ' and (s.quant = new_sales.MAX_Q or s.quant = new_sales.AVG_Q)),
-      sales_data2 as 
-      (select sales_data.prod, sales_data.NY_MAX, sales_data.NY_AVG, sales_data.NY_COUNT, sales_data1.NJ_MAX, sales_data1.NJ_AVG
-       from sales_data LEFT JOIN sales_data1 ON sales_data.prod = sales_data1.prod)
-       select * from sales_data2;
+group by prod, state),
+ales_data as
+(select prod, MAX_Q as NY_MAX, AVG_Q as NY_AVG, COUNT_Q as NY_COUNT
+from new_sales natural join sales s
+where new_sales.state = 'NY' and (s.quant = new_sales.MAX_Q or s.quant = new_sales.AVG_Q)),
+sales_data1 as
+(select prod, MAX_Q as NJ_MAX, AVG_Q as NJ_AVG
+from new_sales natural join sales s
+where new_sales.state = 'NJ' and (s.quant = new_sales.MAX_Q or s.quant = new_sales.AVG_Q)),
+sales_data2 as 
+(select sales_data.prod, sales_data.NY_MAX, sales_data.NY_AVG, sales_data.NY_COUNT, sales_data1.NJ_MAX, sales_data1.NJ_AVG
+from sales_data LEFT JOIN sales_data1 ON sales_data.prod = sales_data1.prod)
+select * from sales_data2;
 
 """
 
